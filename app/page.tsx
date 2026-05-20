@@ -1,65 +1,142 @@
-import Image from "next/image";
+import { Suspense } from 'react';
+import { Header } from '@/components/layout/header';
+import { ActiveFilters } from '@/components/grants/active-filters';
+import { FilterSidebar, MobileFilterSheet } from '@/components/grants/filter-sidebar';
+import { GrantCard } from '@/components/grants/grant-card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { queryGrants, getUniqueSegments, getUniqueUses, getUniqueStages, type GrantFilters } from '@/db/queries';
 
-export default function Home() {
+function parseStringArray(value: string | string[] | undefined): string[] {
+  if (!value) return [];
+  const values = Array.isArray(value) ? value : [value];
+  return values.flatMap((v) => v.split(',').map((s) => s.trim())).filter(Boolean);
+}
+
+function parseNumber(value: string | string[] | undefined): number | null {
+  const v = Array.isArray(value) ? value[0] : value;
+  if (!v) return null;
+  const n = parseFloat(v);
+  return isNaN(n) ? null : n;
+}
+
+function GrantCardSkeletons() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="rounded-lg border p-4 space-y-3">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-5 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <div className="grid grid-cols-2 gap-2 pt-2">
+            <Skeleton className="h-10" />
+            <Skeleton className="h-10" />
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      ))}
+    </div>
+  );
+}
+
+async function GrantsList({ filters }: { filters: GrantFilters }) {
+  const grantsList = await queryGrants(filters).catch(() => []);
+
+  if (grantsList.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-lg font-medium">No programmes match your filters</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Try removing some filters to broaden your search.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      {grantsList.map((grant) => (
+        <GrantCard key={grant.id} grant={grant} />
+      ))}
+    </div>
+  );
+}
+
+async function GrantsCount({ filters }: { filters: GrantFilters }) {
+  const grantsList = await queryGrants(filters).catch(() => []);
+  return (
+    <p className="text-sm text-muted-foreground mt-0.5">
+      {grantsList.length} programme{grantsList.length !== 1 ? 's' : ''} found
+    </p>
+  );
+}
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+
+  const filters: GrantFilters = {
+    categories: parseStringArray(params.category),
+    segments: parseStringArray(params.segment),
+    uses: parseStringArray(params.use),
+    stages: parseStringArray(params.stage),
+    minTicket: parseNumber(params.min),
+    maxTicket: parseNumber(params.max),
+    shariah: parseStringArray(params.shariah),
+  };
+
+  const hasFilters =
+    filters.categories!.length > 0 ||
+    filters.segments!.length > 0 ||
+    filters.uses!.length > 0 ||
+    filters.stages!.length > 0 ||
+    filters.minTicket != null ||
+    filters.maxTicket != null ||
+    filters.shariah!.length > 0;
+
+  // Fetch filter options (cached for 1 hour)
+  const [segments, uses, stages] = await Promise.all([
+    getUniqueSegments(),
+    getUniqueUses(),
+    getUniqueStages(),
+  ]);
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+
+      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 flex flex-1 gap-8 py-6">
+        <Suspense>
+          <FilterSidebar segments={segments} uses={uses} stages={stages} />
+        </Suspense>
+
+        <main className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight">Financing Programmes</h1>
+              <Suspense fallback={<p className="text-sm text-muted-foreground mt-0.5">Loading…</p>}>
+                <GrantsCount filters={filters} />
+              </Suspense>
+            </div>
+            <Suspense>
+              <MobileFilterSheet segments={segments} uses={uses} stages={stages} />
+            </Suspense>
+          </div>
+
+          {hasFilters && (
+            <div className="mb-4">
+              <Suspense>
+                <ActiveFilters />
+              </Suspense>
+            </div>
+          )}
+
+          <Suspense fallback={<GrantCardSkeletons />}>
+            <GrantsList filters={filters} />
+          </Suspense>
+        </main>
+      </div>
     </div>
   );
 }
