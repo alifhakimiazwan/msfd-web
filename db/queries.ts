@@ -116,16 +116,3 @@ export const getUniqueUses = unstable_cache(
   { tags: ['grants'], revalidate: 3600 }
 );
 
-export const getUniqueStages = unstable_cache(
-  async (): Promise<string[]> => {
-    const rows = await db.execute<{ stage: string }>(
-      sql`SELECT DISTINCT unnest(${grants.company_stages}) AS stage
-          FROM ${grants}
-          WHERE ${isNull(grants.archived_at)}
-          ORDER BY stage`
-    );
-    return rows.map((r) => r.stage).filter(Boolean);
-  },
-  ['unique-stages'],
-  { tags: ['grants'], revalidate: 3600 }
-);

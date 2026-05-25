@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
 import { Header } from '@/components/layout/header';
 import { ActiveFilters } from '@/components/grants/active-filters';
-import { FilterSidebar, MobileFilterSheet } from '@/components/grants/filter-sidebar';
+import { FilterSidebarLoader, MobileFilterSheetLoader } from '@/components/grants/filter-sidebar-loader';
 import { GrantCard } from '@/components/grants/grant-card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { queryGrants, getUniqueSegments, getUniqueUses, getUniqueStages, type GrantFilters } from '@/db/queries';
+import { queryGrants, type GrantFilters } from '@/db/queries';
 
 function parseStringArray(value: string | string[] | undefined): string[] {
   if (!value) return [];
@@ -21,7 +21,7 @@ function parseNumber(value: string | string[] | undefined): number | null {
 
 function GrantCardSkeletons() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="rounded-lg border p-4 space-y-3">
           <Skeleton className="h-4 w-24" />
@@ -52,7 +52,7 @@ async function GrantsList({ filters }: { filters: GrantFilters }) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {grantsList.map((grant) => (
         <GrantCard key={grant.id} grant={grant} />
       ))}
@@ -95,20 +95,13 @@ export default async function HomePage({
     filters.maxTicket != null ||
     filters.shariah!.length > 0;
 
-  // Fetch filter options (cached for 1 hour)
-  const [segments, uses, stages] = await Promise.all([
-    getUniqueSegments(),
-    getUniqueUses(),
-    getUniqueStages(),
-  ]);
-
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
 
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 flex flex-1 gap-8 py-6">
-        <Suspense>
-          <FilterSidebar segments={segments} uses={uses} stages={stages} />
+        <Suspense fallback={<div className="hidden md:block w-60 shrink-0" />}>
+          <FilterSidebarLoader />
         </Suspense>
 
         <main className="flex-1 min-w-0">
@@ -120,7 +113,7 @@ export default async function HomePage({
               </Suspense>
             </div>
             <Suspense>
-              <MobileFilterSheet segments={segments} uses={uses} stages={stages} />
+              <MobileFilterSheetLoader />
             </Suspense>
           </div>
 

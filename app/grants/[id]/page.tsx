@@ -8,6 +8,7 @@ import { Header } from "@/components/layout/header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { AgencyLogo } from "@/components/grants/agency-logo";
 import { formatRM } from "@/components/grants/grant-card";
 import type { Grant } from "@/db/schema";
 
@@ -94,28 +95,31 @@ export default async function GrantDetailPage({
         </Button>
 
         {/* Title block */}
-        <div className="mb-6">
-          <div className="flex flex-wrap gap-2 mb-2">
-            {(grant.financing_type_categories ?? []).map((cat) => (
-              <Badge key={cat} variant="secondary">
-                {cat}
-              </Badge>
-            ))}
-            {grant.shariah_compliant && (
-              <Badge variant="outline">
-                Shariah: {grant.shariah_compliant}
-              </Badge>
+        <div className="mb-6 flex items-start gap-4">
+          {grant.agency && <AgencyLogo agency={grant.agency} />}
+          <div>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {(grant.financing_type_categories ?? []).map((cat) => (
+                <Badge key={cat} variant="secondary">
+                  {cat}
+                </Badge>
+              ))}
+              {grant.shariah_compliant && (
+                <Badge variant="outline">
+                  Shariah: {grant.shariah_compliant}
+                </Badge>
+              )}
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {grant.programme_name}
+            </h1>
+            {grant.agency && (
+              <p className="text-muted-foreground mt-1">{grant.agency}</p>
             )}
+            <p className="text-xs text-muted-foreground mt-1 italic">
+              {grant.financing_type}
+            </p>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {grant.programme_name}
-          </h1>
-          {grant.agency && (
-            <p className="text-muted-foreground mt-1">{grant.agency}</p>
-          )}
-          <p className="text-xs text-muted-foreground mt-1 italic">
-            {grant.financing_type}
-          </p>
         </div>
 
         {/* Apply CTA */}

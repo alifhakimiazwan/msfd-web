@@ -8,6 +8,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
+import { AgencyLogo } from "@/components/grants/agency-logo";
 import type { Grant } from "@/db/schema";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -81,31 +82,25 @@ function CostOfCapital({ grant }: { grant: Grant }) {
 export function GrantCard({ grant }: { grant: Grant }) {
   const primaryCategory = grant.financing_type_categories?.[0] ?? "";
   const categoryColor = CATEGORY_COLORS[primaryCategory] ?? "";
-  const segments = grant.value_chain_segments ?? [];
 
   return (
-    <Card className="flex flex-col h-full hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <h3 className="font-semibold leading-snug text-base">
-          {grant.programme_name}
-        </h3>
-        {grant.agency && (
-          <p className="text-sm text-muted-foreground mb-2">{grant.agency}</p>
-        )}
-        <div className="flex flex-wrap gap-1.5">
+    <Card className="flex flex-col h-full hover:shadow-md transition-shadow bg-muted/40">
+      <CardHeader className="pb-1">
+        <div className="flex items-start gap-3">
+          {grant.agency && <AgencyLogo agency={grant.agency} />}
+          <div className="min-w-0">
+            <h3 className="font-semibold leading-snug text-base">
+              {grant.programme_name}
+            </h3>
+            {grant.agency && (
+              <p className="text-sm text-muted-foreground">{grant.agency}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5 pt-3">
           <Badge className={`text-xs font-medium border-0 ${categoryColor}`}>
             {primaryCategory}
           </Badge>
-          {segments.slice(0, 2).map((seg) => (
-            <Badge key={seg} variant="outline" className="text-xs">
-              {seg}
-            </Badge>
-          ))}
-          {segments.length > 2 && (
-            <Badge variant="outline" className="text-xs text-muted-foreground">
-              +{segments.length - 2} more
-            </Badge>
-          )}
         </div>
       </CardHeader>
 
